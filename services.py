@@ -4,6 +4,7 @@ import base64
 import tempfile
 import logging
 import json
+import re
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,11 @@ def extract_text(pdf_bytes: bytes) -> str:
         f.flush()
         with pdfplumber.open(f.name) as pdf:
             return "\n".join(page.extract_text() or "" for page in pdf.pages)
+
+def extract_words(text: str) -> list[str]:
+    # Match lines like "1 journalism" or "10 nutrition"
+    matches = re.findall(r'^\d+\s+([a-zA-Z]+)\s*$', text, re.MULTILINE)
+    return matches
 
 async def generate_passage(text: str) -> tuple[str, str]:
     prompt = f"""Based on the following vocabulary content, generate a creative passage.
@@ -69,7 +75,12 @@ async def process_pdf(url: str):
     try:
         pdf_bytes = await download_pdf(url)
         text = extract_text(pdf_bytes)
-        title, passage_html = await generate_passage(text)
+        words = extract_words(text)
+        print("=" * 50)
+        print("EXTRACTED WORDS:")
+        print(words)
+        print("=" * 50)
+        title, passage_html = await generate_passage(", ".join(words))
         await post_to_wordpress(title, passage_html)
         logger.info(f"Successfully processed: {url}")
     except Exception as e:
