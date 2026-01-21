@@ -9,8 +9,9 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 async def download_pdf(url: str) -> bytes:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, timeout=60)
+        response = await client.get(url, headers=headers, timeout=60)
         response.raise_for_status()
         return response.content
 
